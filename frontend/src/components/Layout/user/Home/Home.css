@@ -1,0 +1,11 @@
+.filter-container {
+    transition: all 0.3s ease-in-out; 
+    overflow: hidden; 
+    opacity: 0; 
+    height: 0; 
+}
+
+.filter-container.visible {
+    opacity: 1; 
+    height: auto; 
+}

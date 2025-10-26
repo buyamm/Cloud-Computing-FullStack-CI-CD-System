@@ -1,0 +1,3 @@
+.transition {
+    transition: all 0.3s ease; /* Thêm hiệu ứng mượt mà cho tất cả các thay đổi trong 0.3 giây */
+}
