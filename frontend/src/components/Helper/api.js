@@ -1,7 +1,7 @@
 
 // const api = 'http://localhost:80/api'
 
-const api = 'https://be-webserver.onrender.com/api'
+const api = 'http://localhost:5000/api';
 
 export default api;
 
