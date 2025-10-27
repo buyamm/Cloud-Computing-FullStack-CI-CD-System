@@ -1,14 +1,12 @@
-require('dotenv').config()
+require('dotenv').config({ path: '../.env' });
 const express = require('express')
 const app = express()
 const path = require('path')
 const ViewEngine = require('./config/viewEngine')
 const router = require('./routers/web')
-const port = process.env.PORT || 80;
-const hostname = process.env.HOST_NAME;
-const mongodb = process.env.MONGODB_URL;
+const port = process.env.PORT || 5000;
+const mongodb = process.env.MONGODB_URI;
 const mongoose = require('mongoose');
-console.log("URI thực sự đang dùngg:", mongodb);
 
 // const Account = require('./models/accounts')
 // const axios = require('axios').default; // npm install axios
@@ -57,5 +55,4 @@ app.use('/api', router)
 
 app.listen(port, () => {
     console.log(mongodb)
-    console.log(`đang chạy ở cổng http://${hostname}:${port}`)
 })
