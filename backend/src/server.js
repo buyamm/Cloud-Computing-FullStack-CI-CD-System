@@ -8,6 +8,8 @@ const port = process.env.PORT || 80;
 const hostname = process.env.HOST_NAME;
 const mongodb = process.env.MONGODB_URL;
 const mongoose = require('mongoose');
+console.log("URI thực sự đang dùngg:", mongodb);
+
 // const Account = require('./models/accounts')
 // const axios = require('axios').default; // npm install axios
 // const CryptoJS = require('crypto-js'); // npm install crypto-js
@@ -18,10 +20,15 @@ var cors = require('cors')
 //connect database mongose
 async function connect() {
     try {
-        await mongoose.connect(mongodb);
+        await mongoose.connect(mongodb, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+});
         console.log('connect thành công')
     } catch (error) {
-        console.log('connect không thành công')
+        console.log("Chuỗi MongoDB URI:", mongodb);
+        console.log('connect không thành công'+ error
+        )
     }
 }
 connect()
