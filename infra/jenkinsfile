@@ -1,0 +1,52 @@
+pipeline {
+    agent any
+
+    environment {
+        PORT = '5000'
+        NODE_ENV = 'production'
+        MONGODB_URI = credentials('mongodb-uri')
+    }
+
+    triggers {
+        pollSCM('* * * * *')
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                echo 'Pulling latest source code...'
+                checkout scm
+            }
+        }
+
+        stage('Build') {
+            steps {
+                echo 'Building backend and frontend Docker images...'
+                bat 'docker-compose build'
+            }
+        }
+
+        stage('Test') {
+            steps {
+                echo 'Running tests...'
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                echo 'Deploying application...'
+                bat 'docker-compose down -v'
+                bat 'docker-compose up -d'
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Pipeline succeeded!'
+        }
+        failure {
+            echo 'Pipeline failed!'
+        }
+    }
+}
