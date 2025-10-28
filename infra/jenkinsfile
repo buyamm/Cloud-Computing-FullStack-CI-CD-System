@@ -2,53 +2,63 @@ pipeline {
     agent any
 
     environment {
-        PORT = '5000'
-        NODE_ENV = 'production'
-        MONGODB_URI = credentials('mongodb-uri')
-    }
-
-    triggers {
-        pollSCM('* * * * *')
+        // Thay bằng Docker Hub username hoặc registry bạn dùng
+        DOCKER_HUB = "truongcongly"
+        FRONTEND_IMAGE = "${DOCKER_HUB}/frontend:latest"
+        BACKEND_IMAGE = "${DOCKER_HUB}/backend:latest"
+        // EC2 user và IP
+        // EC2_USER = "ubuntu"
+        // EC2_HOST = "<EC2_IP>"
+        // DEPLOY_SCRIPT = "~/deploy_to_ec2.sh"
     }
 
     stages {
-        stage('Checkout') {
+
+        stage('Build & Push Docker Images') {
             steps {
-                echo 'Pulling latest source code...'
-                checkout scm
+                script {
+                    // Build FE
+                    sh """
+                        docker build -t ${FRONTEND_IMAGE} ./frontend
+                    """
+                    // Build BE
+                    sh """
+                        docker build -t ${BACKEND_IMAGE} ./backend
+                    """
+                    // Push FE
+                    sh "docker push ${FRONTEND_IMAGE}"
+                    // Push BE
+                    sh "docker push ${BACKEND_IMAGE}"
+                }
             }
         }
 
-        stage('Build') {
+        stage('Deploy to EC2') {
+            // steps {
+            //     // SSH agent sử dụng key đã lưu trong Jenkins Credentials
+            //     sshagent(['ec2-deploy-key']) {
+            //         sh """
+            //             ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} \\
+            //             'bash -s' < ${DEPLOY_SCRIPT}
+            //         """
+            //     }
+            // }
+        }
+
+        stage('Notify') {
             steps {
-                echo 'Building backend and frontend Docker images...'
-                bat 'docker-compose -f infra/docker-compose.yml build'
+                echo "Deployment process finished. Check the EC2 instance for updates."
             }
         }
 
-        stage('Test') {
-            steps {
-                echo 'Running tests...'
-            }
-        }
-
-        stage('Deploy') {
-            steps {
-                echo 'Deploying application...'
-                bat '''
-                docker-compose -f infra/docker-compose.yml down -v
-                docker-compose -f infra/docker-compose.yml up -d
-                '''
-            }
-        }
     }
 
     post {
         success {
-            echo 'Pipeline succeeded!'
+            echo "Pipeline completed successfully!"
         }
         failure {
-            echo 'Pipeline failed!'
+            echo "Pipeline failed!"
         }
     }
 }
