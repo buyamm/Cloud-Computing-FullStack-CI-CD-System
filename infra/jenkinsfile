@@ -2,11 +2,11 @@ pipeline {
     agent any
 
     environment {
-        // Thay bằng Docker Hub username hoặc registry bạn dùng
+        // Docker Hub username / registry
         DOCKER_HUB = "truongcongly"
         FRONTEND_IMAGE = "${DOCKER_HUB}/frontend:latest"
         BACKEND_IMAGE = "${DOCKER_HUB}/backend:latest"
-        // EC2 user và IP
+        // EC2 user & host (commented, chưa dùng)
         // EC2_USER = "ubuntu"
         // EC2_HOST = "<EC2_IP>"
         // DEPLOY_SCRIPT = "~/deploy_to_ec2.sh"
@@ -14,40 +14,47 @@ pipeline {
 
     stages {
 
+        stage('Docker Login') {
+            steps {
+                // Login Docker Hub bằng credentials
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-cred', 
+                                                  usernameVariable: 'DOCKER_USER', 
+                                                  passwordVariable: 'DOCKER_PASS')]) {
+                    sh 'docker login -u $DOCKER_USER -p $DOCKER_PASS'
+                }
+            }
+        }
+
         stage('Build & Push Docker Images') {
             steps {
                 script {
-                    // Build FE
-                    sh """
-                        docker build -t ${FRONTEND_IMAGE} ./frontend
-                    """
-                    // Build BE
-                    sh """
-                        docker build -t ${BACKEND_IMAGE} ./backend
-                    """
-                    // Push FE
-                    sh "docker push ${FRONTEND_IMAGE}"
-                    // Push BE
-                    sh "docker push ${BACKEND_IMAGE}"
+                    // Build frontend
+                    sh "docker build -t ${FRONTEND_IMAGE} ./frontend"
+                    // Build backend
+                    sh "docker build -t ${BACKEND_IMAGE} ./backend"
+                    // Push frontend
+                    withCredentials([usernamePassword(credentialsId: 'dockerhub-cred', 
+                                                      usernameVariable: 'DOCKER_USER', 
+                                                      passwordVariable: 'DOCKER_PASS')]) {
+                        sh "docker push ${FRONTEND_IMAGE}"
+                        sh "docker push ${BACKEND_IMAGE}"
+                    }
                 }
             }
         }
 
         stage('Deploy to EC2') {
-            // steps {
-            //     // SSH agent sử dụng key đã lưu trong Jenkins Credentials
-            //     sshagent(['ec2-deploy-key']) {
-            //         sh """
-            //             ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} \\
-            //             'bash -s' < ${DEPLOY_SCRIPT}
-            //         """
-            //     }
-            // }
+            steps {
+                echo "Deploy stage is currently commented out. Uncomment to deploy to EC2."
+                // sshagent(['ec2-deploy-key']) {
+                //     sh "ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} 'bash -s' < ${DEPLOY_SCRIPT}"
+                // }
+            }
         }
 
         stage('Notify') {
             steps {
-                echo "Deployment process finished. Check the EC2 instance for updates."
+                echo "Deployment process finished. Check Docker Hub for updated images."
             }
         }
 
