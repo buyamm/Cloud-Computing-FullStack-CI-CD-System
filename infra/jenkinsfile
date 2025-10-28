@@ -2,59 +2,75 @@ pipeline {
     agent any
 
     environment {
-        // Docker Hub username / registry
-        DOCKER_HUB = "truongcongly"
+        // ======== Docker Hub ========
+        DOCKER_HUB     = "truongcongly"
         FRONTEND_IMAGE = "${DOCKER_HUB}/frontend:latest"
-        BACKEND_IMAGE = "${DOCKER_HUB}/backend:latest"
-        // EC2 user & host (commented, chưa dùng)
-        // EC2_USER = "ubuntu"
-        // EC2_HOST = "<EC2_IP>"
-        // DEPLOY_SCRIPT = "~/deploy_to_ec2.sh"
+        BACKEND_IMAGE  = "${DOCKER_HUB}/backend:latest"
+
+        // ======== EC2 (chỉ bật khi deploy thật) ========
+        EC2_USER = "ubuntu"
+        EC2_HOST = "52.221.176.126"
+        DEPLOY_SCRIPT = "~/deploy_to_ec2.sh"
     }
 
     stages {
 
         stage('Docker Login') {
             steps {
-                // Login Docker Hub bằng credentials
-                withCredentials([usernamePassword(credentialsId: 'dockerhub-cred', 
-                                                  usernameVariable: 'DOCKER_USER', 
-                                                  passwordVariable: 'DOCKER_PASS')]) {
-                    sh 'docker login -u $DOCKER_USER -p $DOCKER_PASS'
+                echo "🔐 Logging into Docker Hub..."
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub-cred',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+                    sh '''
+                        echo "🧩 Logging in as $DOCKER_USER"
+                        docker login -u $DOCKER_USER -p $DOCKER_PASS
+                    '''
                 }
             }
         }
 
-        stage('Build & Push Docker Images') {
-            steps {
-                script {
-                    // Build frontend
-                    sh "docker build -t ${FRONTEND_IMAGE} ./frontend"
-                    // Build backend
-                    sh "docker build -t ${BACKEND_IMAGE} ./backend"
-                    // Push frontend
-                    withCredentials([usernamePassword(credentialsId: 'dockerhub-cred', 
-                                                      usernameVariable: 'DOCKER_USER', 
-                                                      passwordVariable: 'DOCKER_PASS')]) {
-                        sh "docker push ${FRONTEND_IMAGE}"
-                        sh "docker push ${BACKEND_IMAGE}"
+        stage('Build & Push Images (Parallel)') {
+            parallel {
+                stage('Frontend Build & Push') {
+                    steps {
+                        script {
+                            echo "🚀 Building & pushing Frontend image..."
+                            sh """
+                                docker build -t ${FRONTEND_IMAGE} ./frontend
+                                docker push ${FRONTEND_IMAGE}
+                            """
+                        }
+                    }
+                }
+
+                stage('Backend Build & Push') {
+                    steps {
+                        script {
+                            echo "⚙️ Building & pushing Backend image..."
+                            sh """
+                                docker build -t ${BACKEND_IMAGE} ./backend
+                                docker push ${BACKEND_IMAGE}
+                            """
+                        }
                     }
                 }
             }
         }
 
         stage('Deploy to EC2') {
-            steps {
-                echo "Deploy stage is currently commented out. Uncomment to deploy to EC2."
-                // sshagent(['ec2-deploy-key']) {
-                //     sh "ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} 'bash -s' < ${DEPLOY_SCRIPT}"
-                // }
+            when {
+                expression { return true } 
             }
-        }
-
-        stage('Notify') {
             steps {
-                echo "Deployment process finished. Check Docker Hub for updated images."
+                echo "🚀 Deploying to EC2 server..."
+                sshagent(['ec2-deploy-key']) {
+                    sh '''
+                        ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} \
+                        'bash -s' < ${DEPLOY_SCRIPT}
+                    '''
+                }
             }
         }
 
@@ -62,10 +78,10 @@ pipeline {
 
     post {
         success {
-            echo "Pipeline completed successfully!"
+            echo "🎉 Pipeline completed successfully!"
         }
         failure {
-            echo "Pipeline failed!"
+            echo "❌ Pipeline failed. Check logs for details."
         }
     }
 }
