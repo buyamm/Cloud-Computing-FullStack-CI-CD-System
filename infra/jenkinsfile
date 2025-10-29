@@ -89,20 +89,7 @@ pipeline {
             }
         }
 
-        stage('Deploy to EC2') {
-            when {
-                expression { return true } 
-            }
-            steps {
-                echo "🚀 Deploying to EC2 server..."
-                sshagent(['ec2-deploy-key']) {
-                    sh """
-                        ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} \
-                        'bash -s' < ${DEPLOY_SCRIPT}
-                    """
-                }
-            }
-        }
+  
 
         stage('Cleanup Old Images') {
             steps {
