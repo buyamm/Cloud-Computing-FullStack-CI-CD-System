@@ -1,18 +1,17 @@
 # Sử dụng Node LTS
 FROM node:18-alpine
 
-# Tạo thư mục làm việc
 WORKDIR /app
 
-# Copy package.json và cài dependency
+# Copy package files trước để cache dependencies
 COPY package*.json ./
-RUN npm install --production
+# npm ci nhanh hơn npm install
+RUN npm ci --only=production --ignore-scripts
 
-# Copy toàn bộ code
+# Copy code sau
 COPY . .
 
-# Expose cổng (thường là 5000 hoặc 8080)
 EXPOSE 5000
 
-# Lệnh chạy app
-CMD ["npm", "start"]
+# Dùng node trực tiếp thay vì npm start (nhanh hơn)
+CMD ["node", "index.js"]
