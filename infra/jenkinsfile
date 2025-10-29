@@ -14,7 +14,9 @@ pipeline {
         // ======== EC2 ========
         EC2_USER = "ubuntu"
         EC2_HOST = "52.221.176.126"
-        DEPLOY_SCRIPT = "~/deploy_to_ec2.sh"
+        // DEPLOY_SCRIPT = "~/deploy_to_ec2.sh"
+        DEPLOY_SCRIPT = "./deploy_to_ec2.sh"
+
     }
 
     stages {
@@ -89,6 +91,15 @@ pipeline {
             }
         }
 
+        
+        stage('Deploy (Local Test)') {
+            steps {
+                echo "🚀 Deploying locally..."
+                sh """
+                    bash ${DEPLOY_SCRIPT}
+                """
+            }
+        }
   
 
         stage('Cleanup Old Images') {
