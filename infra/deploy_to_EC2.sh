@@ -3,9 +3,9 @@ set -e
 
 echo "🚀 Starting deployment on EC2..."
 
-# cd /home/ubuntu/app   # <== Thư mục chứa docker-compose.prod.yml
+cd /home/ubuntu/app   # <== Thư mục chứa docker-compose.prod.yml
 
-cd ./infra/
+# cd ./infra/
 
 echo "🧹 Stopping old containers..."
 docker compose -f docker-compose.prod.yml down
