@@ -1,18 +1,13 @@
-# Sử dụng Node LTS
-FROM node:18-alpine
-
-# Tạo thư mục làm việc
+# Stage 1: Build dependencies
+FROM node:20-alpine AS deps
 WORKDIR /app
-
-# Copy package.json và cài dependency
 COPY package*.json ./
-RUN npm install --production
+RUN npm ci --omit=dev  # chỉ production deps, nhanh và sạch
 
-# Copy toàn bộ code
+# Stage 2: Runtime
+FROM node:20-alpine
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-
-# Expose cổng (thường là 5000 hoặc 8080)
 EXPOSE 5000
-
-# Lệnh chạy app
 CMD ["npm", "start"]

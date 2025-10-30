@@ -1,14 +1,14 @@
 # Stage 1: Build
-FROM node:18-alpine as build
+FROM node:18-alpine AS build
 WORKDIR /app
+
 COPY package*.json ./
-RUN npm install
-# Tăng giới hạn bộ nhớ Node khi build
+RUN npm ci
 ENV NODE_OPTIONS="--max-old-space-size=4096"
 COPY . .
 RUN npm run build
 
-# Stage 2: Serve
+# Stage 2: Serve (chỉ copy build artifacts)
 FROM nginx:alpine
 COPY --from=build /app/build /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf

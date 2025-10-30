@@ -2,53 +2,143 @@ pipeline {
     agent any
 
     environment {
-        PORT = '5000'
-        NODE_ENV = 'production'
-        MONGODB_URI = credentials('mongodb-uri')
-    }
+        // ======== Docker Hub ========
+        DOCKER_HUB     = "truongcongly"
+        FRONTEND_IMAGE = "${DOCKER_HUB}/frontend"
+        BACKEND_IMAGE  = "${DOCKER_HUB}/backend"
 
-    triggers {
-        pollSCM('* * * * *')
+        // Enable BuildKit for faster builds
+        DOCKER_BUILDKIT = "1"
+        COMPOSE_DOCKER_CLI_BUILD = "1"
+
+        // ======== EC2 ========
+        EC2_USER = "ubuntu"
+        EC2_HOST = "52.221.176.126"
+        DEPLOY_SCRIPT = "infra/deploy_to_EC2.sh"
+
     }
 
     stages {
-        stage('Checkout') {
+
+        stage('Docker Login') {
             steps {
-                echo 'Pulling latest source code...'
-                checkout scm
+                echo "🔐 Logging into Docker Hub..."
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub-cred',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+                    sh '''
+                        echo "🧩 Logging in as $DOCKER_USER"
+                        echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+                    '''
+                }
             }
         }
 
-        stage('Build') {
+        stage('Pull Cache Images') {
             steps {
-                echo 'Building backend and frontend Docker images...'
-                bat 'docker-compose -f infra/docker-compose.yml build'
+                script {
+                    echo "📦 Pulling previous images for cache..."
+                    sh '''
+                        docker pull node:18-alpine || true
+                        docker pull nginx:alpine || true
+                        docker pull ${FRONTEND_IMAGE}:latest || true
+                        docker pull ${BACKEND_IMAGE}:latest || true
+                    '''
+                }
             }
         }
 
-        stage('Test') {
-            steps {
-                echo 'Running tests...'
+        stage('Build & Push Images (Parallel)') {
+            parallel {
+                stage('Frontend Build & Push') {
+                    steps {
+                        script {
+                            echo "🚀 Building & pushing Frontend image..."
+                            sh """
+                                docker buildx build \
+                                    --cache-from ${FRONTEND_IMAGE}:latest \
+                                    --build-arg BUILDKIT_INLINE_CACHE=1 \
+                                    -t ${FRONTEND_IMAGE}:latest \
+                                    --load \
+                                    ./frontend
+                                
+                                docker push ${FRONTEND_IMAGE}:latest
+                            """
+                        }
+                    }
+                }
+
+                stage('Backend Build & Push') {
+                    steps {
+                        script {
+                            echo "⚙️ Building & pushing Backend image..."
+                            sh """
+                                docker buildx build \
+                                    --cache-from ${BACKEND_IMAGE}:latest \
+                                    --build-arg BUILDKIT_INLINE_CACHE=1 \
+                                    -t ${BACKEND_IMAGE}:latest \
+                                    --load \
+                                    ./backend
+                                
+                                docker push ${BACKEND_IMAGE}:latest
+                            """
+                        }
+                    }
+                }
             }
         }
 
-        stage('Deploy') {
+        
+        stage('Deploy to EC2') {
+            when {
+                expression { return true } 
+            }
             steps {
-                echo 'Deploying application...'
-                bat '''
-                docker-compose -f infra/docker-compose.yml down -v
-                docker-compose -f infra/docker-compose.yml up -d
-                '''
+                echo "🚀 Deploying to EC2 server..."
+                sshagent(['ec2-deploy-key']) {
+                    sh """
+                        ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} \
+                        'bash -s' < ${DEPLOY_SCRIPT}
+                    """
+                }
+            }
+        }
+  
+
+        stage('Cleanup Old Images') {
+            steps {
+                script {
+                    echo "🧹 Cleaning up old Docker images..."
+                    sh '''
+                        docker image prune -f
+                        
+                        # Giữ lại 3 images gần nhất
+                        docker images ${FRONTEND_IMAGE} --format "{{.ID}} {{.Tag}}" | \
+                            grep -v latest | tail -n +4 | awk '{print $1}' | \
+                            xargs -r docker rmi -f || true
+                        
+                        docker images ${BACKEND_IMAGE} --format "{{.ID}} {{.Tag}}" | \
+                            grep -v latest | tail -n +4 | awk '{print $1}' | \
+                            xargs -r docker rmi -f || true
+                    '''
+                }
             }
         }
     }
 
     post {
         success {
-            echo 'Pipeline succeeded!'
+            echo "🎉 Pipeline completed successfully!"
+            echo "Frontend: ${FRONTEND_IMAGE}:latest"
+            echo "Backend: ${BACKEND_IMAGE}:latest"
         }
         failure {
-            echo 'Pipeline failed!'
+            echo "❌ Pipeline failed. Check logs for details."
+        }
+        always {
+            sh 'docker logout || true'
         }
     }
 }
