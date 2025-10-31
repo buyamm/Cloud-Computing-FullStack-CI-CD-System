@@ -19,7 +19,7 @@ pipeline {
             }
         }
 
-        stage('Build') {sh
+        stage('Build') {
             steps {
                 echo 'Building backend and frontend Docker images...'
                 sh 'docker-compose build'
