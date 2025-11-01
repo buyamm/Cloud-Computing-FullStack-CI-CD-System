@@ -1,18 +1,15 @@
-# Sử dụng Node LTS
 FROM node:18-alpine
 
-# Tạo thư mục làm việc
+RUN apk add --no-cache python3 make g++
+
 WORKDIR /app
 
-# Copy package.json và cài dependency
 COPY package*.json ./
-RUN npm install --production
+RUN npm ci --omit=dev --legacy-peer-deps
 
-# Copy toàn bộ code
 COPY . .
 
-# Expose cổng (thường là 5000 hoặc 8080)
+ENV NODE_ENV=production
 EXPOSE 5000
 
-# Lệnh chạy app
 CMD ["npm", "start"]

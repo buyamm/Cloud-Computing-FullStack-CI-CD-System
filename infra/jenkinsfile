@@ -22,7 +22,7 @@ pipeline {
         stage('Build') {
             steps {
                 echo 'Building backend and frontend Docker images...'
-                bat 'docker-compose -f infra/docker-compose.yml build'
+                sh 'docker compose build'
             }
         }
 
@@ -35,10 +35,8 @@ pipeline {
         stage('Deploy') {
             steps {
                 echo 'Deploying application...'
-                bat '''
-                docker-compose -f infra/docker-compose.yml down -v
-                docker-compose -f infra/docker-compose.yml up -d
-                '''
+                sh 'docker compose down -v'
+                sh 'docker compose up -d'
             }
         }
     }
