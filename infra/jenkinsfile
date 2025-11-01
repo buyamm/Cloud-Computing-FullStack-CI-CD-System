@@ -22,7 +22,9 @@ pipeline {
         stage('Build') {
             steps {
                 echo 'Building backend and frontend Docker images...'
-                sh 'docker compose build'
+                dir('infra') {
+                    sh 'docker compose build'
+                }
             }
         }
 
@@ -35,18 +37,20 @@ pipeline {
         stage('Deploy') {
             steps {
                 echo 'Deploying application...'
-                sh 'docker compose down -v'
-                sh 'docker compose up -d'
+                dir('infra') {
+                    sh 'docker compose down -v'
+                    sh 'docker compose up -d'
+                }
             }
         }
     }
 
     post {
         success {
-            echo 'Pipeline succeeded!'
+            echo '✅ Pipeline succeeded!'
         }
         failure {
-            echo 'Pipeline failed!'
+            echo '❌ Pipeline failed!'
         }
     }
 }
