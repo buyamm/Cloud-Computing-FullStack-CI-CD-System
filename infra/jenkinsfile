@@ -36,8 +36,14 @@ pipeline {
             steps {
                 echo 'Deploying application...'
                 bat '''
-                docker-compose -f infra/docker-compose.yml down -v
-                docker-compose -f infra/docker-compose.yml up -d
+                echo Stopping and removing old containers...
+                docker rm -f backend frontend mongo || true
+        
+                echo Cleaning up old containers and volumes...
+                docker-compose -f infra/docker-compose.yml down -v --remove-orphans
+
+                echo Starting new containers...
+                docker-compose -f infra/docker-compose.yml up -d --build
                 '''
             }
         }
