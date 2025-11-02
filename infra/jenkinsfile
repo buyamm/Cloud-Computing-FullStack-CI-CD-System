@@ -131,6 +131,7 @@ pipeline {
     post {
         success {
             echo "🎉 Pipeline completed successfully!"
+            echo "🎉 Our team will be high grade!"
             echo "Frontend: ${FRONTEND_IMAGE}:latest"
             echo "Backend: ${BACKEND_IMAGE}:latest"
         }
