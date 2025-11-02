@@ -22,7 +22,8 @@ pipeline {
         stage('Build') {
             steps {
                 echo 'Building backend and frontend Docker images...'
-                sh 'docker compose -f infra/docker-compose.yml build --progress=plain'
+                bat 'docker-compose build'
+                bat 'docker-compose -f infra/docker-compose.yml build'
             }
         }
 
@@ -35,18 +36,22 @@ pipeline {
         stage('Deploy') {
             steps {
                 echo 'Deploying application...'
-                sh 'docker compose -f infra/docker-compose.yml down -v'
-                sh 'docker compose -f infra/docker-compose.yml up -d'
+                bat 'docker-compose down -v'
+                bat 'docker-compose up -d'
+                bat '''
+                docker-compose -f infra/docker-compose.yml down -v
+                docker-compose -f infra/docker-compose.yml up -d
+                '''
             }
         }
     }
 
     post {
         success {
-            echo '✅ Pipeline succeeded!'
+            echo 'Pipeline succeeded!'
         }
         failure {
-            echo '❌ Pipeline failed!'
+            echo 'Pipeline failed!'
         }
     }
 }
