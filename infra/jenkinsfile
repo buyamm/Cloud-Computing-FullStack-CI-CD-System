@@ -35,8 +35,6 @@ pipeline {
         stage('Deploy') {
             steps {
                 echo 'Deploying application...'
-                bat 'docker-compose down -v'
-                bat 'docker-compose up -d'
                 bat '''
                 docker-compose -f infra/docker-compose.yml down -v
                 docker-compose -f infra/docker-compose.yml up -d
