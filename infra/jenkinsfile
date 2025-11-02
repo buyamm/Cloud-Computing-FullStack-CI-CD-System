@@ -22,7 +22,6 @@ pipeline {
         stage('Build') {
             steps {
                 echo 'Building backend and frontend Docker images...'
-                bat 'docker-compose build'
                 bat 'docker-compose -f infra/docker-compose.yml build'
             }
         }
