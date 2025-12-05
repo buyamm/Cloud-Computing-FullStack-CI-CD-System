@@ -130,7 +130,7 @@ pipeline {
 
     post {
     success {
-        echo "🎉 Pipeline completed successfully!"
+        echo "🎉 Pipeline completed successfullyyyy!"
         emailext(
             subject: "✅ SUCCESS: Jenkins Pipeline Completed",
             body: """
