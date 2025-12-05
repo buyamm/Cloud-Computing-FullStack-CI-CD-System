@@ -129,17 +129,38 @@ pipeline {
     }
 
     post {
-        success {
-            echo "🎉 Pipeline completed successfully!"
-            echo "🎉 Our team will be high grade!"
-            echo "Frontend: ${FRONTEND_IMAGE}:latest"
-            echo "Backend: ${BACKEND_IMAGE}:latest"
-        }
-        failure {
-            echo "❌ Pipeline failed. Check logs for details."
-        }
-        always {
-            sh 'docker logout || true'
-        }
+    success {
+        echo "🎉 Pipeline completed successfully!"
+        emailext(
+            subject: "✅ SUCCESS: Jenkins Pipeline Completed",
+            body: """
+                <h2>🎉 Build Successful!</h2>
+                <p><b>Frontend Image:</b> ${FRONTEND_IMAGE}:latest</p>
+                <p><b>Backend Image:</b> ${BACKEND_IMAGE}:latest</p>
+                <p>Check the Jenkins console for full logs.</p>
+            """,
+            to: "truongcongly139@gmail.com, lytc.22it@vku.udn.vn",
+            mimeType: 'text/html'
+        )
     }
+
+    failure {
+        echo "❌ Pipeline failed. Check logs for details."
+        emailext(
+            subject: "❌ FAILURE: Jenkins Pipeline Failed",
+            body: """
+                <h2>❌ Build Failed!</h2>
+                <p>Build đã gặp lỗi trong khi chạy pipeline.</p>
+                <p>Hãy kiểm tra lại log tại Jenkins.</p>
+            """,
+            to: "truongcongly139@gmail.com, lytc.22it@vku.udn.vn",
+            mimeType: 'text/html'
+        )
+    }
+
+    always {
+        sh 'docker logout || true'
+    }
+}
+
 }
